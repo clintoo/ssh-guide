@@ -1,4 +1,4 @@
-# SSH — Getting Started (Beginner-friendly, thorough one-page guide)
+# SSH — Getting Started.
 
 SSH (Secure Shell) is the standard, secure way to remotely log in to servers, copy files, forward ports, and run commands over an encrypted channel. This page gives you everything you need to *get started safely*: concepts, concrete commands, configuration examples, common workflows, security best practices, and troubleshooting.
 
