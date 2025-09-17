@@ -349,7 +349,290 @@ ssh -vvv user@host      # very verbose
 
 ---
 
-## 14) Example workflow: deploy key and SSH in 5 minutes (summary)
+## 14) Git with SSH: Complete guide (GitHub, GitLab, Bitbucket)
+
+SSH is the recommended way to authenticate with Git hosting platforms. This section covers everything you need to securely use Git with SSH keys.
+
+### Why use SSH with Git?
+
+* **More secure** than HTTPS with passwords or tokens
+* **No password prompts** during git operations
+* **Credential caching** through SSH agent
+* **Works seamlessly** with Git Bash on Windows
+
+### Step 1: Add your SSH public key to Git hosting platforms
+
+After generating your SSH key (see section 2), add the **public key** to your Git hosting account:
+
+#### GitHub
+1. Copy your public key: `cat ~/.ssh/id_ed25519.pub`
+2. Go to GitHub → Settings → SSH and GPG keys → New SSH key
+3. Paste the key, give it a descriptive title
+4. Test: `ssh -T git@github.com`
+
+#### GitLab
+1. Copy your public key: `cat ~/.ssh/id_ed25519.pub`
+2. Go to GitLab → User Settings → SSH Keys → Add SSH Key
+3. Paste the key, give it a descriptive title
+4. Test: `ssh -T git@gitlab.com`
+
+#### Bitbucket
+1. Copy your public key: `cat ~/.ssh/id_ed25519.pub`
+2. Go to Bitbucket → Personal settings → SSH keys → Add key
+3. Paste the key, give it a label
+4. Test: `ssh -T git@bitbucket.org`
+
+### Step 2: Configure Git for SSH
+
+Set your Git identity (if not already done):
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your-email@example.com"
+```
+
+### Step 3: Working with repositories over SSH
+
+#### Clone a repository with SSH
+
+```bash
+# GitHub
+git clone git@github.com:username/repository.git
+
+# GitLab
+git clone git@gitlab.com:username/repository.git
+
+# Bitbucket
+git clone git@bitbucket.org:username/repository.git
+
+# Custom Git server
+git clone git@yourserver.com:path/to/repository.git
+```
+
+#### Convert existing HTTPS clone to SSH
+
+```bash
+# Check current remote URL
+git remote -v
+
+# Change to SSH
+git remote set-url origin git@github.com:username/repository.git
+
+# Verify the change
+git remote -v
+```
+
+#### Create and push a new repository
+
+```bash
+# Initialize repository
+git init
+git add .
+git commit -m "Initial commit"
+
+# Add SSH remote and push
+git remote add origin git@github.com:username/repository.git
+git branch -M main
+git push -u origin main
+```
+
+### Step 4: Git SSH configuration (advanced)
+
+Create `~/.ssh/config` for Git-specific settings:
+
+```text
+# GitHub
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+
+# GitLab
+Host gitlab.com
+  HostName gitlab.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+
+# Multiple GitHub accounts
+Host github-work
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_work
+  IdentitiesOnly yes
+
+Host github-personal
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_personal
+  IdentitiesOnly yes
+```
+
+With multiple accounts, clone using the host alias:
+
+```bash
+git clone git@github-work:company/repository.git
+git clone git@github-personal:username/personal-repo.git
+```
+
+### Step 5: Git Bash on Windows
+
+Git Bash provides a Unix-like environment on Windows and works great with SSH:
+
+#### Using SSH agent with Git Bash
+
+```bash
+# Start SSH agent (add to ~/.bashrc for automatic startup)
+eval "$(ssh-agent -s)"
+
+# Add your SSH key
+ssh-add ~/.ssh/id_ed25519
+
+# List loaded keys
+ssh-add -l
+```
+
+#### Auto-start SSH agent in Git Bash
+
+Add this to your `~/.bashrc` file:
+
+```bash
+# Auto-start SSH agent
+if [ -z "$SSH_AUTH_SOCK" ]; then
+  eval "$(ssh-agent -s)" > /dev/null
+fi
+
+# Auto-add SSH key (optional - will prompt for passphrase)
+if ! ssh-add -l >/dev/null 2>&1; then
+  ssh-add ~/.ssh/id_ed25519 2>/dev/null
+fi
+```
+
+### Step 6: Common Git SSH workflows
+
+#### Daily Git operations
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Make changes, commit, and push
+git add .
+git commit -m "Your commit message"
+git push origin feature-branch
+
+# All operations use SSH automatically - no password prompts!
+```
+
+#### Working with branches
+
+```bash
+# Create and push new branch
+git checkout -b new-feature
+git push -u origin new-feature
+
+# Pull request/merge request workflow
+git push origin feature-branch
+# Then create PR/MR in web interface
+```
+
+### Step 7: Troubleshooting Git SSH issues
+
+#### `Permission denied (publickey)` with Git
+
+```bash
+# Test SSH connection
+ssh -T git@github.com
+
+# Use specific key
+ssh -i ~/.ssh/id_ed25519 -T git@github.com
+
+# Debug with verbose output
+ssh -vvv -T git@github.com
+```
+
+#### `Could not read from remote repository`
+
+This usually means:
+1. **Wrong SSH key**: Ensure the public key is added to your Git hosting account
+2. **Wrong remote URL**: Verify with `git remote -v`
+3. **SSH agent issues**: Run `ssh-add ~/.ssh/id_ed25519`
+
+#### `Host key verification failed`
+
+First time connecting to a Git host:
+```bash
+# Add known host keys
+ssh-keyscan github.com >> ~/.ssh/known_hosts
+ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts
+```
+
+#### Git operations hang or timeout
+
+```bash
+# Test SSH connection with timeout
+ssh -o ConnectTimeout=10 -T git@github.com
+
+# Check if you're behind a firewall blocking SSH port 22
+# Use HTTPS over SSH (port 443) for GitHub:
+```
+
+Add to `~/.ssh/config`:
+```text
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+  User git
+```
+
+#### Multiple SSH keys confusion
+
+```bash
+# Force Git to use specific key
+git config core.sshCommand "ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes"
+
+# Or set globally
+git config --global core.sshCommand "ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes"
+```
+
+### Step 8: Git SSH best practices
+
+* **Use ed25519 keys** for better security and performance
+* **Use SSH agent** to avoid typing passphrases repeatedly
+* **Use `~/.ssh/config`** for multiple accounts or custom configurations
+* **Test SSH connection** before Git operations: `ssh -T git@github.com`
+* **Keep private keys secure** (`chmod 600 ~/.ssh/id_ed25519`)
+* **Use different keys** for work and personal accounts
+* **Enable two-factor authentication** on your Git hosting accounts
+* **Regularly rotate SSH keys** (annually or when leaving organizations)
+
+### Quick Git SSH cheat sheet
+
+```bash
+# Test connections
+ssh -T git@github.com
+ssh -T git@gitlab.com
+ssh -T git@bitbucket.org
+
+# Clone via SSH
+git clone git@github.com:user/repo.git
+
+# Switch HTTPS to SSH
+git remote set-url origin git@github.com:user/repo.git
+
+# SSH agent
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# Debug connection
+ssh -vvv -T git@github.com
+```
+
+---
+
+## 15) Example workflow: deploy key and SSH in 5 minutes (summary)
 
 1. Generate key locally: `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519`
 2. Copy key to server: `ssh-copy-id -i ~/.ssh/id_ed25519.pub user@server`
@@ -359,7 +642,7 @@ ssh -vvv user@host      # very verbose
 
 ---
 
-## 15) Quick reference cheat sheet
+## 16) Quick reference cheat sheet
 
 ```text
 # Connect
